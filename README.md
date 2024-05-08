@@ -1,3 +1,3 @@
 # Internship
-This is a line from RStudio
+This Repository contains the development of data criteria as part of the RSienaTwoStep project.
 
