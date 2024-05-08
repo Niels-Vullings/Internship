@@ -1,0 +1,205 @@
+---
+title: "Social Networks - Comparing Dyad Census in Simulated Networks"
+author: "Vullings, Niels"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Clear cache
+```{r}
+rm(list=ls())
+```
+
+
+
+
+##Call functions
+###Check packages
+```{r}
+#
+fpackage.check <- function(packages) {
+  lapply(packages, FUN = function(x) {
+    if (!require(x, character.only = TRUE)) {
+      install.packages(x, dependencies = TRUE)
+      library(x, character.only = TRUE)
+    }
+  })
+}
+```
+
+###Dyad census function for observed network evolution
+```{r}
+dyad.census.ind <- function(T1, T2, save.table = FALSE, name = "tR") {
+  dft1 <- reshape2::melt((T1 + t(T1)))[as.vector(upper.tri(T1)),]
+  dft1 <- dft1[order(dft1$Var1),]
+  rownames(dft1) <- NULL
+  colnames(dft1) <- c("ego", "alter", "tie")
+  
+  dft2 <- reshape2::melt((T2 + t(T2)))[as.vector(upper.tri(T2)),]
+  dft2 <- dft2[order(dft2$Var1),]
+  rownames(dft2) <- NULL
+  colnames(dft2) <- c("ego", "alter", "tie")
+  
+  dft1$tiet2 <- dft2$tie
+  
+  tR <- table(dft1$tie, dft1$tiet2)
+  colnames(tR) = c("Null", "Assym", "Mutual")
+  rownames(tR) = c("Null", "Assym", "Mutual")
+  
+  
+  if(save.table == TRUE){
+    
+    tR <<-  tR
+    print("Dyad transitions from T1 to T2")    
+    return(tR)
+    
+  } else{
+    
+    ##Give Output
+    print("Dyad transitions from T1 to T2")
+    return(tR)
+  }
+  
+}
+
+```
+
+###Dyad census function for simulated data using simnets
+```{r}
+
+dyad.census.sim.ind <- function(T1, T_sim, sim_sample = c(1:100), simN = 5, seed = 345657343, save.table = FALSE){
+  ##t1 related census
+  dft1 <- reshape2::melt((T1 + t(T1)))[as.vector(upper.tri(T1)),]
+  dft1 <- dft1[order(dft1$Var1),]
+  rownames(dft1) <- NULL
+  colnames(dft1) <- c("ego", "alter", "tie")
+  
+  ##t2 related census with sim
+  
+  ###Set seed and create an random sample for simulations
+  set.seed(seed)
+  if(simN > length(sim_sample)){ 
+    print("Warning, simN higher than the number of simulations")
+  } else{
+    
+    sample <- as.vector(sample(sim_sample, simN, replace = TRUE))
+  }
+  
+  sim_tot <- 0 #start sim_tot with 0 to solve NA error
+  
+  for (x in sample) {
+    
+    sim_temp <- reshape2::melt((T_sim$simnets[[x]] + t(T_sim$simnets[[x]])))[as.vector(upper.tri(T_sim$simnets[[x]])),]
+    sim_tot <- sim_tot + sim_temp 
+    
+    x+1
+    
+  }
+  
+  sim_mean <- round(sim_tot/length(sample))
+  
+  sim_mean <- sim_mean[order(sim_mean$Var1),]
+  rownames(sim_mean) <- NULL
+  colnames(sim_mean) <- c("ego", "alter", "tie")
+  
+  
+  #Create table
+  dft1$tiet2 <- sim_mean$tie
+  tR <- table(dft1$tie, dft1$tiet2)
+  
+  colnames(tR) = c("Null", "Assym", "Mutual")
+  rownames(tR) = c("Null", "Assym", "Mutual")
+  
+  #give the option to save the table in global environment
+  if(save.table == TRUE){
+    
+    tR <<-  tR
+    print("Dyad transitions from T1 to T2")    
+    return(tR)
+    
+  } else{
+    
+    print("Dyad transitions from T1 to T2")
+    return(tR)
+
+    
+  }
+  
+}
+
+```
+
+##Load packages
+```{r}
+packages <- c("igraph", "RsienaTwoStep")
+fpackage.check(packages)
+
+```
+
+
+
+```{r}
+dyad.census.ind(s501,s502)
+
+t1 <- s501
+
+```
+
+
+##Load simulations
+```{r}
+# getwd()
+
+load("articles/data/processed/20231108ts_ansSp3.rda")
+  ts_ansSp3 <- x
+  rm(x)
+
+  
+dyad.census.sim.ind(s501,ts_ansSp3, sim_sample = c(1:1000), simN = 1, seed = 345657343)
+
+```
+
+```{r}
+
+load("articles/data/processed/20231114ts_ansSCp3.rda")
+  ts_ansSCp3 <- x
+  rm(x)
+
+dyad.census.sim.ind(s501,ts_ansSCp3, sim_sample = c(1:1000), simN = 1, seed = 445657343)
+dyad.census.ind(s501,s502)  
+```
+
+##Testing data
+```{r}
+test_t1 <- reshape2::melt((ts_ansSp3$simnets[[58]] + t(ts_ansSp3$simnets[[58]])))[as.vector(upper.tri(ts_ansSp3$simnets[[58]])),]
+test_t2 <- reshape2::melt((ts_ansSp3$simnets[[41]] + t(ts_ansSp3$simnets[[41]])))[as.vector(upper.tri(ts_ansSp3$simnets[[41]])),]
+test_t3 <- reshape2::melt((ts_ansSp3$simnets[[18]] + t(ts_ansSp3$simnets[[18]])))[as.vector(upper.tri(ts_ansSp3$simnets[[18]])),]
+test_t4 <- reshape2::melt((ts_ansSp3$simnets[[29]] + t(ts_ansSp3$simnets[[29]])))[as.vector(upper.tri(ts_ansSp3$simnets[[29]])),]
+test_t5 <- reshape2::melt((ts_ansSp3$simnets[[33]] + t(ts_ansSp3$simnets[[33]])))[as.vector(upper.tri(ts_ansSp3$simnets[[33]])),]
+
+t1 <- s501*5
+test_full_net <- (ts_ansSp3$simnets[[58]]+ts_ansSp3$simnets[[41]]+ts_ansSp3$simnets[[18]]+ts_ansSp3$simnets[[29]]+ts_ansSp3$simnets[[33]])
+test_full_net_mean <- (ts_ansSp3$simnets[[58]]+ts_ansSp3$simnets[[41]]+ts_ansSp3$simnets[[18]]+ts_ansSp3$simnets[[29]]+ts_ansSp3$simnets[[33]])/5
+test_full_net_round <- round((ts_ansSp3$simnets[[58]]+ts_ansSp3$simnets[[41]]+ts_ansSp3$simnets[[18]]+ts_ansSp3$simnets[[29]]+ts_ansSp3$simnets[[33]])/5)
+
+dyad.census.ind(t1, test_full_net)
+test <- round((test_t1 + test_t2 + test_t3 + test_t4 + test_t5)/5)
+
+#random check
+# check <- c(11,32,376,54,7565,46,357,88,889)
+
+# check[[1]]
+# ts_ansSp3$simnets[[check[[1+2]]]]
+```
+
+
+
+
+```{r}
+
+```
+

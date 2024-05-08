@@ -1,0 +1,95 @@
+```{r}
+library(RsienaTwoStep)
+library(igraph)
+```
+```{r}
+ts_net1 + t(ts_net1)
+```
+
+```{r}
+ts_net1
+sna::dyad.census(ts_net1)
+
+as.vector(upper.tri(ts_net1))
+
+ts_net1 + t(ts_net1)
+
+reshape2::melt((ts_net1 + t(ts_net1)))[as.vector(upper.tri(ts_net1)),]
+
+
+dyad.census.ind <- function(x) {
+ df <- reshape2::melt((x + t(x)))[as.vector(upper.tri(x)),]
+ df <- df[order(df$Var1),]
+ rownames(df) <- NULL
+ colnames(df) <- c("ego", "alter", "tie")
+ return(df)
+}
+
+
+ts_net1_t2 <- ts_net1
+ts_net1_t2[1,4] <- 1 
+ts_net1_t2[4,1] <- 1 
+
+
+
+dft1 <- dyad.census.ind(ts_net1)
+dft2 <- dyad.census.ind(ts_net1_t2)
+
+dft1$tiet2 <- dft2$tie
+dft1
+table(dft1$tie, dft1$tiet2)
+```
+
+```{r}
+#op basis van rsienaworkflow vignette
+
+
+dyad.census.ind <- function(x) {
+  df <- reshape2::melt((x + t(x)))[as.vector(upper.tri(x)),]
+  df <- df[order(df$Var1),]
+  rownames(df) <- NULL
+  colnames(df) <- c("ego", "alter", "tie")
+  return(df)
+}
+
+
+#reality
+
+t2 <- s502
+t1 <- s501
+
+dft1 <- dyad.census.ind(t1)
+dft2 <- dyad.census.ind(t2)
+
+dft1$tiet2 <- dft2$tie
+dft1
+tR <- table(dft1$tie, dft1$tiet2)
+
+#simultaneity
+t2 <- ts_ansSp3$simnets[[3]]
+t1 <- s501
+
+dft1 <- dyad.census.ind(t1)
+dft2 <- dyad.census.ind(t2)
+
+dft1$tiet2 <- dft2$tie
+dft1
+tS <- table(dft1$tie, dft1$tiet2)
+
+#strong coordination
+t2 <- ts_ansSCp3$simnets[[3]]
+t1 <- s501
+
+dft1 <- dyad.census.ind(t1)
+dft2 <- dyad.census.ind(t2)
+
+dft1$tiet2 <- dft2$tie
+dft1
+tSC <- table(dft1$tie, dft1$tiet2)
+
+tR
+tS
+tSC
+
+```
+
