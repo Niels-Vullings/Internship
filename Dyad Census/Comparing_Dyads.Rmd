@@ -33,7 +33,7 @@ fpackage.check <- function(packages) {
 
 ###Dyad census function for observed network evolution
 ```{r}
-dyad.census.ind <- function(T1, T2, save.table = FALSE, name = "tR") {
+dyad.census.ind <- function(T1, T2, save.table = FALSE, table.name = "simsamsom") {
   dft1 <- reshape2::melt((T1 + t(T1)))[as.vector(upper.tri(T1)),]
   dft1 <- dft1[order(dft1$Var1),]
   rownames(dft1) <- NULL
@@ -53,8 +53,11 @@ dyad.census.ind <- function(T1, T2, save.table = FALSE, name = "tR") {
   
   if(save.table == TRUE){
     
-    tR <<-  tR
+    
     print("Dyad transitions from T1 to T2")    
+    assign(paste0(table.name), dft1, envir = .GlobalEnv)
+    # assign(paste0(table.name, ": " , format(as.POSIXct(Sys.time()), format = "%H:%M:%S")), dft1, envir = .GlobalEnv)
+
     return(tR)
     
   } else{
@@ -71,7 +74,7 @@ dyad.census.ind <- function(T1, T2, save.table = FALSE, name = "tR") {
 ###Dyad census function for simulated data using simnets
 ```{r}
 
-dyad.census.sim.ind <- function(T1, T_sim, sim_sample = c(1:100), simN = 5, seed = 345657343, save.table = FALSE){
+dyad.census.sim.ind <- function(T1, T_sim, sim_sample = c(1:100), simN = 5, seed = 345657343, save.table = FALSE, table.name = "simsamsom"){
   ##t1 related census
   dft1 <- reshape2::melt((T1 + t(T1)))[as.vector(upper.tri(T1)),]
   dft1 <- dft1[order(dft1$Var1),]
@@ -117,20 +120,23 @@ dyad.census.sim.ind <- function(T1, T_sim, sim_sample = c(1:100), simN = 5, seed
   #give the option to save the table in global environment
   if(save.table == TRUE){
     
-    tR <<-  tR
-    print("Dyad transitions from T1 to T2")    
+    # Table <<-  dft1
+    print("Dyad transitions from T1 to simulated T2")    
+    assign(paste0(table.name), dft1, envir = .GlobalEnv)
+    # assign(paste0(table.name, ": " , format(as.POSIXct(Sys.time()), format = "%H:%M:%S")), dft1, envir = .GlobalEnv)
+
     return(tR)
     
   } else{
     
-    print("Dyad transitions from T1 to T2")
+    print("Dyad transitions from T1 to simulated T2")
     return(tR)
 
     
   }
   
 }
-
+?Sys.time
 ```
 
 ##Load packages
@@ -138,56 +144,55 @@ dyad.census.sim.ind <- function(T1, T_sim, sim_sample = c(1:100), simN = 5, seed
 packages <- c("igraph", "RsienaTwoStep")
 fpackage.check(packages)
 
+# assign(paste0("blabla", date()), t1)
 ```
 
-
-
-```{r}
-dyad.census.ind(s501,s502)
-
-t1 <- s501
-
-```
-
-
-##Load simulations
+##Load simulation Data
 ```{r}
 # getwd()
 
-load("articles/data/processed/20231108ts_ansSp3.rda")
+load("articles/data/processed/20231108ts_ansSp3.rda") #SimStep
   ts_ansSp3 <- x
   rm(x)
 
-  
-dyad.census.sim.ind(s501,ts_ansSp3, sim_sample = c(1:1000), simN = 1, seed = 345657343)
-
-```
-
-```{r}
-
-load("articles/data/processed/20231114ts_ansSCp3.rda")
+load("articles/data/processed/20231114ts_ansSCp3.rda") #Strict Coordination
   ts_ansSCp3 <- x
   rm(x)
 
-dyad.census.sim.ind(s501,ts_ansSCp3, sim_sample = c(1:1000), simN = 1, seed = 445657343)
-dyad.census.ind(s501,s502)  
+load("articles/data/processed/20231112ts_ansWCp3.rda") #Strict Coordination
+  ts_ansWCp3 <- x
+  rm(x)  
+  
 ```
+
+
+```{r}
+dyad.census.sim.ind(s501,ts_ansSp3, sim_sample = c(1:1000), simN = 1000, seed = 445847343, save.table = TRUE, table.name = "SimStep")
+dyad.census.sim.ind(s501,ts_ansSCp3, sim_sample = c(1:1000), simN = 1000, seed = 445847343, save.table = TRUE, table.name = "Strict Coord")
+dyad.census.sim.ind(s501,ts_ansWCp3, sim_sample = c(1:1000), simN = 1000, seed = 445847343, save.table = TRUE, table.name = "Weak Coord")
+
+dyad.census.ind(s501,s502, save.table = TRUE, table.name = "Observed")  
+```
+
+
+
 
 ##Testing data
 ```{r}
-test_t1 <- reshape2::melt((ts_ansSp3$simnets[[58]] + t(ts_ansSp3$simnets[[58]])))[as.vector(upper.tri(ts_ansSp3$simnets[[58]])),]
-test_t2 <- reshape2::melt((ts_ansSp3$simnets[[41]] + t(ts_ansSp3$simnets[[41]])))[as.vector(upper.tri(ts_ansSp3$simnets[[41]])),]
-test_t3 <- reshape2::melt((ts_ansSp3$simnets[[18]] + t(ts_ansSp3$simnets[[18]])))[as.vector(upper.tri(ts_ansSp3$simnets[[18]])),]
-test_t4 <- reshape2::melt((ts_ansSp3$simnets[[29]] + t(ts_ansSp3$simnets[[29]])))[as.vector(upper.tri(ts_ansSp3$simnets[[29]])),]
-test_t5 <- reshape2::melt((ts_ansSp3$simnets[[33]] + t(ts_ansSp3$simnets[[33]])))[as.vector(upper.tri(ts_ansSp3$simnets[[33]])),]
-
-t1 <- s501*5
-test_full_net <- (ts_ansSp3$simnets[[58]]+ts_ansSp3$simnets[[41]]+ts_ansSp3$simnets[[18]]+ts_ansSp3$simnets[[29]]+ts_ansSp3$simnets[[33]])
-test_full_net_mean <- (ts_ansSp3$simnets[[58]]+ts_ansSp3$simnets[[41]]+ts_ansSp3$simnets[[18]]+ts_ansSp3$simnets[[29]]+ts_ansSp3$simnets[[33]])/5
-test_full_net_round <- round((ts_ansSp3$simnets[[58]]+ts_ansSp3$simnets[[41]]+ts_ansSp3$simnets[[18]]+ts_ansSp3$simnets[[29]]+ts_ansSp3$simnets[[33]])/5)
-
-dyad.census.ind(t1, test_full_net)
-test <- round((test_t1 + test_t2 + test_t3 + test_t4 + test_t5)/5)
+# test_t1 <- reshape2::melt((ts_ansSp3$simnets[[58]] + t(ts_ansSp3$simnets[[58]])))[as.vector(upper.tri(ts_ansSp3$simnets[[58]])),]
+# test_t2 <- reshape2::melt((ts_ansSp3$simnets[[41]] + t(ts_ansSp3$simnets[[41]])))[as.vector(upper.tri(ts_ansSp3$simnets[[41]])),]
+# test_t3 <- reshape2::melt((ts_ansSp3$simnets[[18]] + t(ts_ansSp3$simnets[[18]])))[as.vector(upper.tri(ts_ansSp3$simnets[[18]])),]
+# test_t4 <- reshape2::melt((ts_ansSp3$simnets[[29]] + t(ts_ansSp3$simnets[[29]])))[as.vector(upper.tri(ts_ansSp3$simnets[[29]])),]
+# test_t5 <- reshape2::melt((ts_ansSp3$simnets[[33]] + t(ts_ansSp3$simnets[[33]])))[as.vector(upper.tri(ts_ansSp3$simnets[[33]])),]
+# 
+# t1 <- s501*5
+# test_full_net <- (ts_ansSCp3$simnets[[58]]+ts_ansSCp3$simnets[[41]]+ts_ansSCp3$simnets[[18]]+ts_ansSCp3$simnets[[29]]+ts_ansSCp3$simnets[[33]])
+# test_full_net_mean <- (ts_ansSCp3$simnets[[58]]+ts_ansSCp3$simnets[[41]]+ts_ansSCp3$simnets[[18]]+ts_ansSCp3$simnets[[29]]+ts_ansSCp3$simnets[[33]])/5
+# test_full_net_round <- round((ts_ansSCp3$simnets[[58]]+ts_ansSCp3$simnets[[41]]+ts_ansSCp3$simnets[[18]]+ts_ansSCp3$simnets[[29]]+ts_ansSCp3$simnets[[33]])/5)
+# 
+# dyad.census.ind(s501,s502)
+# dyad.census.ind(s501, test_full_net_round)
+# test <- round((test_t1 + test_t2 + test_t3 + test_t4 + test_t5)/5)
 
 #random check
 # check <- c(11,32,376,54,7565,46,357,88,889)
