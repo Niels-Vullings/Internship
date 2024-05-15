@@ -2,19 +2,27 @@
 title: "Social Networks - Comparing Dyad Census in Simulated Networks"
 author: "Vullings, Niels"
 date: "`r Sys.Date()`"
-output: html_document
+output: 
+  html_document: 
+    toc: true
+    theme: journal
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-##Clear cache
+## Clear cache
+
 ```{r}
 rm(list=ls())
 ```
 
-###Check packages
+### Check packages
+
 ```{r}
 #
 fpackage.check <- function(packages) {
@@ -26,7 +34,9 @@ fpackage.check <- function(packages) {
   })
 }
 ```
-##Load packages
+
+## Load packages
+
 ```{r}
 packages <- c("igraph", "RsienaTwoStep")
 fpackage.check(packages)
@@ -34,7 +44,8 @@ fpackage.check(packages)
 # assign(paste0("blabla", date()), t1)
 ```
 
-##Load simulation Data
+## Load simulation Data
+
 ```{r}
 # getwd()
 
@@ -52,9 +63,10 @@ rm(x)
 
 ```
 
-#Old Functions
+# Old Functions
 
-##Dyad census function for observed network evolution
+## Dyad census function for observed network evolution
+
 ```{r}
 dyad.census.ind <- function(T1, T2, save.table = FALSE, table.name = "simsamsom") {
   dft1 <- reshape2::melt((T1 + t(T1)))[as.vector(upper.tri(T1)),]
@@ -94,7 +106,8 @@ dyad.census.ind <- function(T1, T2, save.table = FALSE, table.name = "simsamsom"
 
 ```
 
-##Dyad census function for simulated data using simnets
+## Dyad census function for simulated data using simnets
+
 ```{r}
 
 # dyad.census.sim.ind <- function(T1, T_sim, sim_sample = c(1:100), simN = 5, seed = 345657343, save.table = FALSE, table.name = "simsamsom"){
@@ -162,7 +175,8 @@ dyad.census.ind <- function(T1, T2, save.table = FALSE, table.name = "simsamsom"
 # ?Sys.time
 ```
 
-##Dyad census function for simulated data using simnets [different method]
+## Dyad census function for simulated data using simnets [different method]
+
 ```{r}
 # 
 # dyad.census.sim.ind2 <- function(T1, T_sim, sim_sample = c(1:100), simN = 5, seed = 345657343, save.table = FALSE, table.name = "simsamsom"){
@@ -233,11 +247,16 @@ dyad.census.ind <- function(T1, T2, save.table = FALSE, table.name = "simsamsom"
 # ?Sys.time
 ```
 
+# Improved functions The functions below are improved and are able to
+measure specific dyad types in a social network.
 
-#Improved functions
-The functions below are improved and 
+## Dyad Census type function [improved method]
 
-##Dyad Census type function [improved method]
+The function dyad.census.type allows for exporting a dataframe that
+lists the specific a dyad's relationship evolved between the 2 point of
+observation. Its standard function is to count the occurences of certain
+dyad relationships.
+
 ```{r}
 
 dyad.census.type <- function(t1, t2, save.dyads = FALSE){
@@ -330,34 +349,49 @@ dyad.census.type(s501,s502)
 
 ```
 
-##Dyad simulated census function
+## Dyad simulated census function
+
+This function returns the dyad census for simulated data. Simulated
+networks can be included as t2. The function will create a mean census
+for the simulate data, based on specified parameters.
+
 ```{r}
 
-# dyad.census.sim <- function(t1, tsim, sim_sample = c(1:100), simN = 5, seed = 345657343){
-#   
-#   set.seed(seed)
-#   if(simN > length(sim_sample)){ 
-#     print("Warning, simN higher than the number of simulations")
-#   } else{
-#     
-#     sample <- as.vector(sample(sim_sample, simN, replace = TRUE))
-#   }
-#   
-#   
-#   df <- foreach::foreach(sim_sample, i=iterators::icount(), .combine="rbind") %dopar% {
-#     df <- as.data.frame(dyad.census.type(s501, t2= ts_ansSCp3$simnets[[i]]))
-#   }
-#   
-#   assign("testje", df, envir = .GlobalEnv)
-#   test <- round(colMeans(df))
-#   return(test)
-# }
+dyad.census.sim <- function(t1, tsim, sim_sample = c(1:100), simN = 5, seed = 345657343){
+
+  set.seed(seed)
+  if(simN > length(sim_sample)){
+    print("Warning, simN higher than the number of simulations")
+  } else{
+
+    sample <- as.vector(sample(sim_sample, simN, replace = TRUE))
+  }
+
+
+  df <- foreach::foreach(sim_sample, i=iterators::icount(), .combine="rbind") %dopar% {
+    df <- as.data.frame(dyad.census.type(s501, t2= ts_ansSCp3$simnets[[i]]))
+  }
+
+  assign("testje", df, envir = .GlobalEnv)
+  test <- round(colMeans(df))
+  return(test)
+}
 
 # dyad.census.sim(s501,ts_ansSCp3$simnets)
 ```
-##Dyad census full function for observed and simulated data
+
+## Dyad census full function for observed and simulated data
+
+This is the complete function that can handle both observed and
+simulated data. it integrates the functions that were described above,
+so that single matrices as well as lists (sim data) can be included in
+the census.
+
 things to fix:
-  - If a dyad type is not present, the code will crash because there is an empty dataframe
+
+\- If a dyad type is not present, the code will crash because there is
+an empty dataframe
+
 ```{r}
 ts_dyad.census <- function(t1,t2, sim_sample = c(1:1000), simN = 5, seed = 345657343, save.dyads = FALSE){
   
@@ -382,18 +416,18 @@ ts_dyad.census <- function(t1,t2, sim_sample = c(1:1000), simN = 5, seed = 34565
     jumpst2[lower.tri(jumpst2)] <- NA #remove duplicate ties
     
     #Dyad combinations
-    stable00 <<- as.data.frame(which(jumpst1 == 0 & jumpst2 == 0, arr.ind = TRUE)) #Null at t1 and Null at t2
-    stable01 <<- as.data.frame(which(flips == 0 & stablet1 == 1 & stablet2 == 1, arr.ind = TRUE)) #Assymetric at t1 and t2 and no flip
-    stable11 <<- as.data.frame(which(jumpst1 == 2 & jumpst2 == 2, arr.ind = TRUE)) #Mutual at t1 and Mutual at t2
+    stable00 <- as.data.frame(which(jumpst1 == 0 & jumpst2 == 0, arr.ind = TRUE)) #Null at t1 and Null at t2
+    stable01 <- as.data.frame(which(flips == 0 & stablet1 == 1 & stablet2 == 1, arr.ind = TRUE)) #Assymetric at t1 and t2 and no flip
+    stable11 <- as.data.frame(which(jumpst1 == 2 & jumpst2 == 2, arr.ind = TRUE)) #Mutual at t1 and Mutual at t2
     
-    Null_Assym <<- as.data.frame(which(jumpst1 == 0 & stablet2 == 1, arr.ind = TRUE))#Null -> assym
-    Assym_Null <<- as.data.frame(which(flips == 0 & stablet1 == 1 & stablet2 == 0, arr.ind = TRUE))#Assum -> Null
-    Assym_Mut <<- as.data.frame(which(stablet1 == 1 & jumpst2 == 2, arr.ind = TRUE))#Assym -> Mutual
-    Mut_Assym <<- as.data.frame(which(jumpst1 == 2 & jumpst2 == 1, arr.ind = TRUE))#Assym -> Mutual
+    Null_Assym <- as.data.frame(which(jumpst1 == 0 & stablet2 == 1, arr.ind = TRUE))#Null -> assym
+    Assym_Null <- as.data.frame(which(flips == 0 & stablet1 == 1 & stablet2 == 0, arr.ind = TRUE))#Assum -> Null
+    Assym_Mut <- as.data.frame(which(stablet1 == 1 & jumpst2 == 2, arr.ind = TRUE))#Assym -> Mutual
+    Mut_Assym <- as.data.frame(which(jumpst1 == 2 & jumpst2 == 1, arr.ind = TRUE))#Assym -> Mutual
     
-    flip <<- as.data.frame(which(flips == 2 & stablet1 != 2 & stablet2 != 2, arr.ind = TRUE)) #flips, so 01 at T1 and 10 at T2
-    jump02 <<- as.data.frame(which(jumpst1 == 0 & jumpst2 == 2, arr.ind = TRUE)) #Null jump, from Null to Mutual
-    jump20 <<- as.data.frame(which(jumpst1 == 2 & jumpst2 == 0, arr.ind = TRUE)) #Mutual jump, from Mutual to Null
+    flip <- as.data.frame(which(flips == 2 & stablet1 != 2 & stablet2 != 2, arr.ind = TRUE)) #flips, so 01 at T1 and 10 at T2
+    jump02 <- as.data.frame(which(jumpst1 == 0 & jumpst2 == 2, arr.ind = TRUE)) #Null jump, from Null to Mutual
+    jump20 <- as.data.frame(which(jumpst1 == 2 & jumpst2 == 0, arr.ind = TRUE)) #Mutual jump, from Mutual to Null
     
     
     table <- cbind(nrow(stable00),
@@ -471,41 +505,6 @@ ts_dyad.census <- function(t1,t2, sim_sample = c(1:1000), simN = 5, seed = 34565
 # ts_dyad.census(s501,ts_ansSp3$simnets, sim_sample = c(1:1000), simN = 1000)
 ts_dyad.census(s501,s502, save.dyads = T)
 dyad.census.ind(s501,s502)
-
-```
-
-
-
-```{r}
-library(tidyverse)
-t1 <- s501
-t2 <- s502
-
-
-ts_dyad.census(s501,s502, save.dyads = T)
-
-
-# check <- reshape2::melt((s501))
-# check$Var2 <- as.numeric(check$Var2)
-
-# check <- check %>% select(Var1, Var2)
-dyads_check <- dyads 
-
-# check <- check %>% mutate(check1 = paste0(Var1, Var2))
-
-dyads_check <- dyads_check %>% mutate(check1 = as.numeric(paste0(row, col)))
-dyads_check <- dyads_check %>% mutate(check2 = as.numeric(paste0(col, row)))
-checkje <- dyads_check %>% count(check1)
-checkje2 <- dyads_check %>% count(check2)
-
-check <- check %>% mutate(dif = if_else(check1 %in% dyads_check$check1, TRUE, FALSE))
-
-check %>% count(dif)
-
-dyads_check <- dyads_check %>% mutate(dif = if_else(check1 %in% check$check1, TRUE, FALSE))
-
-
-
 
 ```
 
