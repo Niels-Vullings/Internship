@@ -240,77 +240,93 @@ The functions below are improved and
 ##Dyad Census type function [improved method]
 ```{r}
 
-# dyad.census.type <- function(t1, t2, save.dyads = FALSE){
-#   
-#   t1 <- t1 #+ 1
-#   diag(t1) = NA
-#   t2 <- t2
-#   diag(t2) = NA
-#   
-# 
-#   flips <- t1 + t(t2) - t2 #subtract s502 to ensure that Mutual ties are not included
-#   
-#   jumpst1 <- t1 + t(t1)
-#   stablet1 <- jumpst1
-#   jumpst1[lower.tri(jumpst1)] <- NA
-#   
-#   jumpst2 <- t2 + t(t2)
-#   stablet2 <- jumpst2
-#   jumpst2[lower.tri(jumpst2)] <- NA
-#   
-#   #Dyad combinations
-#   stable00 <- which(jumpst1 == 0 & jumpst2 == 0, arr.ind = TRUE)
-#   stable01 <- which(flips == 0 & stablet1 == 1 & stablet2 == 1, arr.ind = TRUE)
-#   stable11 <- which(jumpst1 == 2 & jumpst2 == 2, arr.ind = TRUE)
-#   flip <- which(flips == 2, arr.ind = TRUE) #flips, so 01 at T1 and 10 at T2
-#   jump02 <- which(jumpst1 == 0 & jumpst2 == 2, arr.ind = TRUE) #Null jump, from Null to Mutual
-#   jump20 <- which(jumpst1 == 2 & jumpst2 == 0, arr.ind = TRUE) #Mutual jump, from Mutual to Null
-#   
-#   
-#   table <- cbind(nrow(stable00),
-#                  nrow(stable01),
-#                  nrow(stable11),
-#                  nrow(flip),
-#                  nrow(jump02),
-#                  nrow(jump20))
-#   
-#   colnames(table) = c("Null > Null", 
-#                       "Assym > Assym",
-#                       "Mutual > Mutual",
-#                       "Tie flip",
-#                       "Null > Mutual",
-#                       "Mutual > Null")
-# 
-#   if(save.dyads == TRUE){
-#     
-#     # Table <<-  dft1
-#     stable00 <<- stable00
-#     stable01 <<- stable01
-#     stable11 <<- stable11
-#     flip <<- flip
-#     jump02 <<- jump02
-#     jump20 <<- jump20
-#     
-#     # print("Dyad transitions from T1 to T2")
-#     return(table)
-#     
-#   } else{
-#     
-#     # print("Dyad transitions from T1 to T2")
-#     return(table)
-#     
-#     
-#   }
-# }
+dyad.census.type <- function(t1, t2, save.dyads = FALSE){
+    
+    t1 <- t1 #+ 1
+    diag(t1) = NA #exclude the diagonal, not relevant data
+    t2 <- t2
+    diag(t2) = NA #exclude the diagonal, not relevant data
+    
+    flips <- t1 + t(t2) - t2 #subtract s502 to ensure that Mutual ties are not included
+    
+    
+    jumpst1 <- t1 + t(t1) #t1 plus its transpose lead to a value of 2 for mutual ties
+    stablet1 <- jumpst1 #use this for stable assymetric ties
+    jumpst1[lower.tri(jumpst1)] <- NA #remove duplicate ties
+    
+    jumpst2 <- t2 + t(t2)
+    stablet2 <- jumpst2 #use this for stable assymetric ties
+    jumpst2[lower.tri(jumpst2)] <- NA #remove duplicate ties
+    
+    #Dyad combinations
+    stable00 <<- as.data.frame(which(jumpst1 == 0 & jumpst2 == 0, arr.ind = TRUE)) #Null at t1 and Null at t2
+    stable01 <<- as.data.frame(which(flips == 0 & stablet1 == 1 & stablet2 == 1, arr.ind = TRUE)) #Assymetric at t1 and t2 and no flip
+    stable11 <<- as.data.frame(which(jumpst1 == 2 & jumpst2 == 2, arr.ind = TRUE)) #Mutual at t1 and Mutual at t2
+    
+    Null_Assym <<- as.data.frame(which(jumpst1 == 0 & stablet2 == 1, arr.ind = TRUE))#Null -> assym
+    Assym_Null <<- as.data.frame(which(flips == 0 & stablet1 == 1 & stablet2 == 0, arr.ind = TRUE))#Assum -> Null
+    Assym_Mut <<- as.data.frame(which(stablet1 == 1 & jumpst2 == 2, arr.ind = TRUE))#Assym -> Mutual
+    Mut_Assym <<- as.data.frame(which(jumpst1 == 2 & jumpst2 == 1, arr.ind = TRUE))#Assym -> Mutual
+    
+    flip <<- as.data.frame(which(flips == 2 & stablet1 != 2 & stablet2 != 2, arr.ind = TRUE)) #flips, so 01 at T1 and 10 at T2
+    jump02 <<- as.data.frame(which(jumpst1 == 0 & jumpst2 == 2, arr.ind = TRUE)) #Null jump, from Null to Mutual
+    jump20 <<- as.data.frame(which(jumpst1 == 2 & jumpst2 == 0, arr.ind = TRUE)) #Mutual jump, from Mutual to Null
+    
+    
+    table <- cbind(nrow(stable00),
+                   nrow(stable01),
+                   nrow(stable11),
+                   nrow(Null_Assym),
+                   nrow(Assym_Null),
+                   nrow(Assym_Mut),
+                   nrow(Mut_Assym),
+                   nrow(flip),
+                   nrow(jump02),
+                   nrow(jump20)) #bind the rownumbers to determine the census of the tie type
+    
+    colnames(table) = c("Null > Null", 
+                        "Assym > Assym",
+                        "Mutual > Mutual",
+                        "Null > Assym",
+                        "Null > Assym",
+                        "Assym > Mutual",
+                        "Mutual > Assym",
+                        "Tie flip",
+                        "Null > Mutual",
+                        "Mutual > Null") 
+    
+    if(save.dyads == TRUE){
+      #give each dyad a relationship identifier
+      stable00$tie <- "Null > Null"
+      stable01$tie <- "Assym > Assym"
+      stable11$tie <- "Mutual > Mutual"
+      Null_Assym$tie <- "Null > Assym"
+      Assym_Null$tie <- "Assym > Null"
+      Assym_Mut$tie <- "Assym > Mutual"
+      Mut_Assym$tie <- "Mutual > Assym"
+      flip$tie <- "Tie flip"
+      jump02$tie <- "Null > Mutual"
+      jump20$tie <- "Mutual > Null"
+      
+      dyads <<- rbind(stable00,stable01,stable11, Null_Assym, Assym_Null, Assym_Mut, Mut_Assym, flip,jump02,jump20) #save a dataframe which contains the relationships of each dyad
+      
+      # print("Dyad transitions from T1 to T2")
+      return(table)
+      
+    } else{
+      
+      # print("Dyad transitions from T1 to T2")
+      return(table)
+      
+      
+    }
 
-# dyad.census.type(s501,s502, save.dyads = T)
-
-
+}
 
 
 # sna::dyad.census(s501,s502)
 
-# dyad.census.type(s501,s502)
+dyad.census.type(s501,s502)
 
 ```
 
