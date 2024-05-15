@@ -1,5 +1,4 @@
 ```{r}
-rm(list=ls())
 library(RsienaTwoStep)
 library(igraph)
 ```
@@ -20,30 +19,28 @@ library(igraph)
 
 T1 <- s501
 diag(T1)=NA
+T1_up <- T1
+T1_up[lower.tri(T1_up)] <- NA
 
-recip <- reshape2::melt((T1 + t(T1)))[as.vector(upper.tri(T1)),]
+T1_low <- T1
+T1_up[upper.tri(T1_up)] <- NA
 
+ID_up <- reshape2::melt(T1)
+ID_up$iden <- ifelse(is.na(ID_up$value),NA,"upper.tri") 
 
-ID_up <- reshape2::melt(T1)[as.vector(upper.tri(T1)),]
-ID_up$iden <- "upper.tri" 
-ID_low <- reshape2::melt(T1)[as.vector(lower.tri(T1)),]
-ID_low$iden <- "lower.tri"
-#ID_low sorteren vanaf Var2 a.k.a. alter geeft de spiegeling van ID_up(gesorteerd op var1)
+ID_low <- reshape2::melt(T1_low)
+ID_low$iden <- ifelse(is.na(ID_low$value),NA,"lower.tri") 
 
 T1_full <- rbind(ID_up, ID_low)
-
-
 T1_full <- T1_full[,c("Var1", "Var2", "iden", "value")]
 T1_full <- T1_full[rowSums(is.na(T1_full))==0,]
 
 
 dft1 <- T1_full[order(T1_full$Var1),]
-dft1$value2 <- T1_full$value[order(T1_full$Var2)] # this is wrong
+dft1$value2 <- T1_full$value[order(T1_full$Var2)]
 
 rownames(dft1) <- NULL
 colnames(dft1) <- c("ego", "alter", "iden", "outgoing", "incoming")
-
-# dft1 <- subset(dft1, iden == "upper.tri")
 
 for(x in 1:nrow(dft1)){
   if(dft1$outgoing[x] == 0 & dft1$incoming[x] == 0){
@@ -58,6 +55,7 @@ for(x in 1:nrow(dft1)){
   x+1
 }# bla1 <- dft1
 
+dft1 <- subset(dft1, iden == "lower.tri")
 
 
 ```
@@ -229,48 +227,5 @@ tSC
 
 ```
 
-
-```{r}
-t1 <- s501 #+ 1
-diag(t1) = NA
-t2 <- s502
-diag(t2) = NA
-
-test <- 
-
-flips <- s501 + t(s502) - s502 #subtract s502 to ensure that Mutual ties are not included
-
-# flips[lower.tri(flips)] <- NA
-
-jumpst1 <- s501 + t(s501)
-
-stablet1 <- jumpst1
-
-jumpst1[lower.tri(jumpst1)] <- NA
-
-jumpst2 <- s502 + t(s502)
-stablet2 <- jumpst2
-jumpst2[lower.tri(jumpst2)] <- NA
-
-
-check_flip <- which(flips == 2, arr.ind = TRUE) #flips, so 01 at T1 and 10 at T2
-check_Njump <- which(jumpst1 == 0 & jumpst2 == 2, arr.ind = TRUE) #Null jump, from Null to Mutual
-check_Mjump <- which(jumpst1 == 2 & jumpst2 == 0, arr.ind = TRUE) #Mutual jump, from Mutual to Null
-check_Nstable <- which(t1 == 0 & t2 == 0, arr.ind = TRUE)
-
-check_Astable <- which(flips == 0 & stablet1 == 1 & stablet2 == 1, arr.ind = TRUE)
-check_Mstable <- which(jumpst1 == 2 & jumpst2 == 2, arr.ind = TRUE)
-
-testje <- matrix(c(nrow(check_Nstable),nrow()))
-cbind(nrow(check_Nstable),nrow(check_Njump))
-
-
-# test <- as.data.frame(sna::as.edgelist.sna(t1))
-# test$snd <- test$snd[order(test$snd)]
-# test$val <- test$val - 1
-
-# dyad.census.ind(t1,t2)
-  
-```
 
 
