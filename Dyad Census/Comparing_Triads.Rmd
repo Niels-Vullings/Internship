@@ -1,0 +1,108 @@
+---
+title: "RSTS - Comparing Triads"
+author: "Vullings, Niels"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+rm(list=ls())
+```
+
+```{r}
+library(RSiena)
+library(foreach)
+library(sna)
+library(iterators)
+
+```
+
+```{r}
+ftriads <- function(net) {
+  
+  if(ncol(net) < 3 & nrow(net) < 3){
+    print(isTRUE(ncol(net) < 3 & nrow(net) < 3))
+    print("warning: Matrix does not contain triads")
+  } else{
+    x <-
+      foreach(a1=1:nrow(net), i=icount() , .combine="rbind") %:%
+      foreach(a2=1:nrow(net), j=icount() , .combine="rbind") %:%
+      foreach(a3=1:nrow(net),  k=icount() , .combine="rbind") %do% {
+        if (i>=j & j>=k ) data.frame(i=i, j=j, k=k, count=sna::triad.census(net[c(a1,a2,a3),c(a1,a2,a3)])) #(i>j & j>k ) determines with or without repititions [current = NO REP]
+      }
+    triads <<-  x
+    print(as.matrix(colSums(x[4:19])))
+    # return(x)
+  }
+}
+
+triad.evo <- function(net) {
+  
+  if(ncol(net) < 3 & nrow(net) < 3){
+    print(isTRUE(ncol(net) < 3 & nrow(net) < 3))
+    print("warning: Matrix does not contain triads")
+  } else{
+    x <-
+      foreach(a1=1:nrow(net), i=icount() , .combine="rbind") %:%
+      foreach(a2=1:nrow(net), j=icount() , .combine="rbind") %:%
+      foreach(a3=1:nrow(net),  k=icount() , .combine="rbind") %do% {
+        if (i>j & j>k ) data.frame(i=i, j=j, k=k, count=sna::triad.census(net[c(a1,a2,a3),c(a1,a2,a3)])) #(i>j & j>k ) determines with or without repititions [current = NO REP]
+      }
+    triad <<-  x
+    print(as.matrix(colSums(x[4:19])))
+    # return(x)
+  }
+}
+
+
+sna::triad.census(s501[1:3,1:3])
+
+#langzaam, dus slechts op deel
+ftriads(s501[1:3,1:3]) #With repititions
+triad.evo(s501[1:3,1:3]) #Without repititions
+
+
+```
+
+```{r}
+triad.evolution <- function(t1,t2="def") { #Function no displays macro changes between t1 and t2, but no point of departure change
+  
+  xt1 <-
+    foreach(a1=1:nrow(t1), i=icount() , .combine="rbind") %:%
+    foreach(a2=1:nrow(t1), j=icount() , .combine="rbind") %:%
+    foreach(a3=1:nrow(t1),  k=icount() , .combine="rbind") %do% {
+      if (i>j & j>k ) data.frame(i=i, j=j, k=k, count=sna::triad.census(t1[c(a1,a2,a3),c(a1,a2,a3)])) #(i>j & j>k ) determines with or without repititions [current = NO REP]
+    }
+  
+  xt1$stamp <- "t1"
+  xt2 <-
+    foreach(a1=1:nrow(t2), i=icount() , .combine="rbind") %:%
+    foreach(a2=1:nrow(t2), j=icount() , .combine="rbind") %:%
+    foreach(a3=1:nrow(t2),  k=icount() , .combine="rbind") %do% {
+      if (i>j & j>k ) data.frame(i=i, j=j, k=k, count=sna::triad.census(t2[c(a1,a2,a3),c(a1,a2,a3)])) #(i>j & j>k ) determines with or without repititions [current = NO REP]
+    }
+  xt2$stamp <- "t2"
+  
+  triadst2 <<-  xt2
+  triadst1 <<-  xt1
+  # print(as.matrix(colSums(xt2[4:19])))
+  # print(as.matrix(colSums(xt1[4:19])))
+  print(as.matrix(colSums(xt2[4:19])-colSums(xt1[4:19])))
+  # return(x)
+}
+# timestamp()
+triad.evolution(s501[1:5,1:5],s502[1:5,1:5])
+# timestamp()
+```
+
+
+
+```{r}
+colnames(triadst1[])
+```
+
+
