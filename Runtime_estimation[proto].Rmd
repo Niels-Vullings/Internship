@@ -1,0 +1,133 @@
+---
+title: "Runtime Testing"
+author: "Vullings, Niels"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#
+fpackage.check <- function(packages) {
+  lapply(packages, FUN = function(x) {
+    if (!require(x, character.only = TRUE)) {
+      install.packages(x, dependencies = TRUE)
+      library(x, character.only = TRUE)
+    }
+  })
+}
+```
+
+```{r}
+packages <- c("igraph", "RsienaTwoStep", "foreach", "sna", "iterators","doParallel")
+fpackage.check(packages)
+
+# assign(paste0("blabla", date()), t1)
+```
+
+```{r}
+triad.evolution2 <- function(t1,t2="def") { #Function no displays macro changes between t1 and t2, but no point of departure change
+  
+  xt1 <-
+    foreach(a1=1:nrow(t1), i=icount() , .combine="rbind") %:%
+    foreach(a2=1:nrow(t1), j=icount() , .combine="rbind") %:%
+    foreach(a3=1:nrow(t1),  k=icount() , .combine="rbind") %do% {
+      if (i>j & j>k ) data.frame(i=i, j=j, k=k,
+                                 t1_ij=as.character(t1[a1,a2]), t1_ji=as.character(t1[a2,a1]),
+                                 t1_ik=as.character(t1[a1,a3]),t1_ki=as.character(t1[a3,a1]),
+                                 t1_jk=as.character(t1[a2,a3]),t1_kj=as.character(t1[a3,a2]),
+                                 sna::triad.census(t1[c(a1,a2,a3),c(a1,a2,a3) ])) #(i>j & j>k ) determines with or without repititions [current = NO REP]
+    }
+  
+  # print(xt1)
+  
+  xt1$stamp <- "t1"
+  xt1$name <- paste0(xt1$i,".",xt1$j,".",xt1$k)
+  t1 <- subset(xt1, select=c(name,stamp, t1_ij:t1_kj))
+  xt1 <- subset(xt1, select=c(name,stamp,X003,X012,X102,X021D,X021U,X021C,X111D,X111U,X030T,X030C,X201,X120D,X120U,X120C,X210,X300))
+  
+  for(i in 1:nrow(xt1)){
+    t1$typeT1[i] <- colnames(xt1[which(xt1[i,] == 1)])#return the triad class for each triad
+    
+  }
+  
+  # print(t1)
+  
+  xt2 <-
+    foreach(a1=1:nrow(t2), i=icount() , .combine="rbind") %:%
+    foreach(a2=1:nrow(t2), j=icount() , .combine="rbind") %:%
+    foreach(a3=1:nrow(t2),  k=icount() , .combine="rbind") %do% {
+      if (i>j & j>k ) data.frame(i=i, j=j, k=k,
+                                 t2_ij=as.character(t2[a1,a2]), t2_ji=as.character(t2[a2,a1]),
+                                 t2_ik=as.character(t2[a1,a3]),t2_ki=as.character(t2[a3,a1]),
+                                 t2_jk=as.character(t2[a2,a3]),t2_kj=as.character(t2[a3,a2]),
+                                 sna::triad.census(t2[c(a1,a2,a3),c(a1,a2,a3) ])) #(i>j & j>k ) determines with or without repititions [current = NO REP]
+    }
+  
+  # print(xt2)
+  
+  xt2$stamp <- "t2"
+  xt2$name <- paste0(xt2$i,".",xt2$j,".",xt2$k)
+  t2 <- subset(xt2, select=c(name,stamp, t2_ij:t2_kj))
+  xt2 <- subset(xt2, select=c(name,stamp,X003,X012,X102,X021D,X021U,X021C,X111D,X111U,X030T,X030C,X201,X120D,X120U,X120C,X210,X300))
+  
+  
+  for(i in 1:nrow(xt2)){
+    t2$typeT2[i] <- colnames(xt2[which(xt2[i,] == 1)])#return the triad class for a specific triad
+    
+  }
+  # print(t2)
+  Triad_change <- merge.data.frame((t1),subset(t2,select=c(name, stamp, t2_ij:t2_kj, typeT2)), by = "name")
+  
+  
+}
+```
+
+
+```{r}
+no_cores <- detectCores() - 1
+mycl <- makeCluster(rep("localhost", no_cores))
+clusterEvalQ(mycl, library(RsienaTwoStep))
+registerDoParallel(mycl)
+#stopCluster(mycl)
+```
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+# rm(list=ls())
+test <- data.frame(n = 3:50, size = NA)
+
+
+for (i in 1:nrow(test)) {
+  print(i)
+  test$size[i] <- choose(i+2, 3)
+  # print(data.frame(X=i, size=choose(i, 3)))
+}
+
+test %>% ggplot(aes(x=n, y=runtime)) + geom_line()
+
+# sleep_for_a_minute <- function() { Sys.sleep(60) }
+timestamp()
+for(i in 1:nrow(test)){
+  
+  start_time <- Sys.time()
+  triad.evolution2(s501[1:(i+2), 1:(i+2)], s502[1:(i+2), 1:(i+2)])
+  end_time <- Sys.time()
+  
+  temp <- end_time - start_time
+  # Time difference of 1.000327 mins
+  
+  test$runtime[i] <- temp[[1]]
+  print(i)
+}
+
+timestamp()
+
+
+
+```
+
