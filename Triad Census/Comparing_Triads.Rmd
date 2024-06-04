@@ -7,17 +7,19 @@ output:
     highlight: pygments
     theme: readable
     df_print: kable
+    toc: true
+    toc_float: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r clear workspace}
 rm(list=ls())
 ```
 
-```{r}
+```{r load packages}
 library(RSiena)
 library(foreach)
 library(sna)
@@ -250,8 +252,8 @@ triad.evolution3 <- function(t1,t2, filter = FALSE) { #Function no displays macr
   # print(xt1)
   
   xt1$stamp <- "t1"
-  xt1$name <- paste0(xt1$i,".",xt1$j,".",xt1$k)
-  t1 <- subset(xt1, select=c(name,stamp, t1_ij:t1_kj))
+  xt1$name <- paste0(xt1$i,".",xt1$j,".",xt1$k) #name is each actor in triad
+  t1 <- subset(xt1, select=c(name,stamp, t1_ij:t1_kj)) # Write out t1 to remove clutter variables
   xt1 <- subset(xt1, select=c(name,stamp,X003,X012,X102,X021D,X021U,X021C,X111D,X111U,X030T,X030C,X201,X120D,X120U,X120C,X210,X300))
   
   for(i in 1:nrow(xt1)){
@@ -286,25 +288,25 @@ triad.evolution3 <- function(t1,t2, filter = FALSE) { #Function no displays macr
     
   }
   # print(t2)
-  df <- merge.data.frame((t1),subset(t2,select=c(name, stamp, t2_ij:t2_kj, typeT2)), by = "name")
+  df <- merge.data.frame((t1),subset(t2,select=c(name, stamp, t2_ij:t2_kj, typeT2)), by = "name") #merge T1 & T2 and keep only relevant vars
   
   for(i in 1:nrow(df)){
     # print(i)
     
-    df$equal[i] <- sum(df[i, 3:8] != df[i, 11:16]) <= 2
+    df$equal[i] <- sum(df[i, 3:8] != df[i, 11:16]) <= 2 #Changes between T1 and T2 are valid for RSTS if the changes do not exceed 2
     # print(Triad_change$equal[i])  
     
   }
   
-  print(as.data.frame(df[which(df$equal == FALSE),c("name", "typeT1", "typeT2", "equal")]))
+  print(as.data.frame(df[which(df$equal == FALSE),c("name", "typeT1", "typeT2", "equal")])) #prints the "invalid" triad changes
   
-  Triads <<- df
+  Triads <<- df # Write out all triads for visual inspection
   
   if(filter == TRUE){
     
     filt <- df[df$equal == TRUE,]
     tab_filt <- reshape2::melt(table(filt$typeT1, filt$typeT2, dnn = c("Timepoint 1", "Timepoint 2")))
-    print(tab_filt[order(tab_filt$value, decreasing = TRUE),])
+    print(tab_filt[order(tab_filt$value, decreasing = TRUE),]) 
     # test_filt <<- filt
     
     
@@ -339,8 +341,6 @@ triad.evolution3(s501[1:10,1:10],s502[1:10,1:10], filter = FALSE)
 -   Fluid naming of the dataset, so it is not overwritten when the code is used in succession
 
 -   The function is quite intensive for large networks
-
--   
 
 ```{r}
 
