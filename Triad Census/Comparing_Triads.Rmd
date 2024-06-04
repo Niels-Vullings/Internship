@@ -2,7 +2,11 @@
 title: "RSTS - Comparing Triads"
 author: "Vullings, Niels"
 date: "`r Sys.Date()`"
-output: html_document
+output: 
+  html_document: 
+    highlight: pygments
+    theme: readable
+    df_print: kable
 ---
 
 ```{r setup, include=FALSE}
@@ -22,7 +26,23 @@ library(doParallel)
 
 ```
 
+# Set up parallel cluster
+
+```{r}
+
+no_cores <- detectCores() - 1
+mycl <- makeCluster(rep("localhost", no_cores))
+clusterEvalQ(mycl, library(RsienaTwoStep))
+registerDoParallel(mycl)
+# stopCluster(mycl)
+
+
+```
+
 # Prototype
+
+These functions served as the idea of looping over a matrix. ftriads did not make a distinction between with or without repetition and included all configurations of a single unique triad. triad.evo does make a distiction and was used for the other versions of the function
+
 ```{r}
 ftriads <- function(net) {
   
@@ -70,8 +90,18 @@ triad.evo <- function(net) {
 
 ```
 
-
 # First version
+
+This version of the function included a foreach for T1 and T2, determined the triad configuration of each triad at those timepoint and merged this into a dataset. However, this version did not allow us to see if the configuration of T2 build upon T1. For example: The transition from X102 (I & J have a reciprocal tie) to X120U (K & J have a reciprocal tie and send both send 1 tie to I) [figure 1] is different when the reciprocal tie between I & J would have stayed the same [figure 2] .
+
+-   Figure 1
+
+    ![](images/clipboard-1175322648.png)
+
+-   Figure 2
+
+    ![](images/clipboard-801787726.png)
+
 ```{r}
 triad.evolution <- function(t1,t2="def") { #Function no displays macro changes between t1 and t2, but no point of departure change
   
@@ -118,8 +148,6 @@ triad.evolution <- function(t1,t2="def") { #Function no displays macro changes b
 
 ```
 
-
-
 ```{r}
 # t1 <- s501[1:4,1:4]
 # t2 <- s502[1:4,1:4]
@@ -139,8 +167,10 @@ triad.evolution <- function(t1,t2="def") { #Function no displays macro changes b
 
 ```
 
-
 # Second version
+
+This version was able to extract the configuration of each tie in the triad, but did not extract a final census. It was also not able to identify if a tie stayed the same and thus it is at a user's own discretion to determine the change of the triad between two observation points.
+
 ```{r}
 triad.evolution2 <- function(t1,t2="def") { #Function no displays macro changes between t1 and t2, but no point of departure change
   
@@ -199,14 +229,12 @@ triad.evolution2 <- function(t1,t2="def") { #Function no displays macro changes 
 }
 ```
 
-```{r}
-# triad.evolution2(s501[1:10,1:10],s502[1:10,1:10])
-
-```
-
 # Third version
+
+This "final" version of the function is able to distinguish and filter between ties that "flip" between two points of observation, which was determined by checking if the sum of changes between the 6 possible ties is more than 2. If these changes occur more often than 2, this is not something that RSienaTwoStep could estimate. For example: a change from X003 to X300 or from X300 to X102. The function outputs these large change triads, so they can be analysed by the user. The choice can be made to analyse the census with these large changing triads or without by using the 'filter = TRUE' condition. The final output is a reshaped table that orders the amount of triads that changed from most to least occuring. A dataset with the triads name (the numbered alters, 1.2.3), type at T1 and T2 and the configuration are exported to the environment
+
 ```{r}
-triad.evolution3 <- function(t1,t2) { #Function no displays macro changes between t1 and t2, but no point of departure change
+triad.evolution3 <- function(t1,t2, filter = FALSE) { #Function no displays macro changes between t1 and t2, but no point of departure change
   
   xt1 <-
     foreach(a1=1:nrow(t1), i=icount() , .combine="rbind") %:%
@@ -242,6 +270,7 @@ triad.evolution3 <- function(t1,t2) { #Function no displays macro changes betwee
                                  t2_ik=as.character(t2[a1,a3]),t2_ki=as.character(t2[a3,a1]),
                                  t2_jk=as.character(t2[a2,a3]),t2_kj=as.character(t2[a3,a2]),
                                  sna::triad.census(t2[c(a1,a2,a3),c(a1,a2,a3) ])) #(i>j & j>k ) determines with or without repititions [current = NO REP]
+      
     }
   
   # print(xt2)
@@ -267,29 +296,52 @@ triad.evolution3 <- function(t1,t2) { #Function no displays macro changes betwee
     
   }
   
-  print(as.data.frame(df[which(df$equal == FALSE),c("name", "typeT1", "typeT2")]))
-  # filt <- df[df$equal == TRUE,]
-  test_tab <<- reshape2::melt(table(df$typeT1, df$typeT2, dnn = c("Timepoint 1", "Timepoint 2")))
-  print(test_tab)
-  test <<- df
+  print(as.data.frame(df[which(df$equal == FALSE),c("name", "typeT1", "typeT2", "equal")]))
+  
+  Triads <<- df
+  
+  if(filter == TRUE){
+    
+    filt <- df[df$equal == TRUE,]
+    tab_filt <- reshape2::melt(table(filt$typeT1, filt$typeT2, dnn = c("Timepoint 1", "Timepoint 2")))
+    print(tab_filt[order(tab_filt$value, decreasing = TRUE),])
+    # test_filt <<- filt
+    
+    
+  } else{
+    test_tab <- reshape2::melt(table(df$typeT1, df$typeT2, dnn = c("Timepoint 1", "Timepoint 2")))
+    print(test_tab[order(test_tab$value, decreasing = TRUE),])
+    # test_nofilt <<- df
+  }
   # test_f <<- filt
 }
+
 ```
+
+## Example with filter
 
 ```{r}
 
-# no_cores <- detectCores() - 1
-# mycl <- makeCluster(rep("localhost", no_cores))
-# clusterEvalQ(mycl, library(RsienaTwoStep))
-# registerDoParallel(mycl)
-# # stopCluster(mycl)
-
-triad.evolution3(s501[1:15,1:15],s502[1:15,1:15])
+triad.evolution3(s501[1:10,1:10],s502[1:10,1:10], filter = TRUE)
 
 
 ```
+
+## Example without filter
+
+```{r}
+triad.evolution3(s501[1:10,1:10],s502[1:10,1:10], filter = FALSE)
+
+```
+
+# Possible alterations
+
+-   Fluid naming of the dataset, so it is not overwritten when the code is used in succession
+
+-   The function is quite intensive for large networks
+
+-   
 
 ```{r}
 
 ```
-

@@ -29,7 +29,7 @@ fpackage.check(packages)
 ```
 
 ```{r}
-triad.evolution2 <- function(t1,t2="def") { #Function no displays macro changes between t1 and t2, but no point of departure change
+triad.evolution3 <- function(t1,t2) { #Function no displays macro changes between t1 and t2, but no point of departure change
   
   xt1 <-
     foreach(a1=1:nrow(t1), i=icount() , .combine="rbind") %:%
@@ -80,9 +80,22 @@ triad.evolution2 <- function(t1,t2="def") { #Function no displays macro changes 
     
   }
   # print(t2)
-  Triad_change <- merge.data.frame((t1),subset(t2,select=c(name, stamp, t2_ij:t2_kj, typeT2)), by = "name")
+  df <- merge.data.frame((t1),subset(t2,select=c(name, stamp, t2_ij:t2_kj, typeT2)), by = "name")
   
+  for(i in 1:nrow(df)){
+    # print(i)
+    
+    df$equal[i] <- sum(df[i, 3:8] != df[i, 11:16]) <= 2
+    # print(Triad_change$equal[i])  
+    
+  }
   
+  # print(as.data.frame(df[which(df$equal == FALSE),c("name", "typeT1", "typeT2")]))
+  # filt <- df[df$equal == TRUE,]
+  test_tab <- reshape2::melt(table(df$typeT1, df$typeT2, dnn = c("Timepoint 1", "Timepoint 2")))
+  print(test_tab)
+  # test <<- df
+  # test_f <<- filt
 }
 ```
 
@@ -92,7 +105,7 @@ no_cores <- detectCores() - 1
 mycl <- makeCluster(rep("localhost", no_cores))
 clusterEvalQ(mycl, library(RsienaTwoStep))
 registerDoParallel(mycl)
-#stopCluster(mycl)
+# stopCluster(mycl)
 ```
 
 ```{r}
@@ -108,26 +121,31 @@ for (i in 1:nrow(test)) {
   # print(data.frame(X=i, size=choose(i, 3)))
 }
 
-test %>% ggplot(aes(x=n, y=runtime)) + geom_line()
 
 # sleep_for_a_minute <- function() { Sys.sleep(60) }
 timestamp()
 for(i in 1:nrow(test)){
   
   start_time <- Sys.time()
-  triad.evolution2(s501[1:(i+2), 1:(i+2)], s502[1:(i+2), 1:(i+2)])
+  triad.evolution3(s501[1:(i+2), 1:(i+2)], s502[1:(i+2), 1:(i+2)])
   end_time <- Sys.time()
   
   temp <- end_time - start_time
   # Time difference of 1.000327 mins
   
-  test$runtime[i] <- temp[[1]]
+  test$runtime[i] <- temp
   print(i)
 }
 
 timestamp()
 
+# test$runtime[38:48] <- test$runtime[38:48] * 60
+options(scipen = 999)
+test %>% ggplot(aes(x=n, y=runtime)) + geom_line()
 
+
+```
+```{r}
 
 ```
 
