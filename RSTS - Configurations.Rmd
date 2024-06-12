@@ -24,7 +24,6 @@ rm(list=ls())
 ### Check packages
 
 ```{r}
-#
 fpackage.check <- function(packages) {
   lapply(packages, FUN = function(x) {
     if (!require(x, character.only = TRUE)) {
@@ -34,6 +33,9 @@ fpackage.check <- function(packages) {
   })
 }
 
+packages <- c("igraph", "RsienaTwoStep", "foreach", "sna", "iterators", "doParallel")
+
+fpackage.check(packages)
 
 ```
 
@@ -48,12 +50,6 @@ registerDoParallel(mycl)
 
 ```
 
-```{r}
-packages <- c("igraph", "RsienaTwoStep", "foreach", "sna", "iterators", "doParallel")
-
-fpackage.check(packages)
-
-```
 # Dyad Function
 ```{r}
 ts_dyad.evo <- function(t1 = "network",t2 = "network or simulated data" , sim_sample = c(1:1000), simN = 1000, seed = 345657343, save.dyads = FALSE){
@@ -186,12 +182,12 @@ ts_triads.evo <- function(t1,t2, filter = FALSE) {
   
   if(length(t1) >= 1225){
     
-    print("runtime is high")
+    print("Large networks can cause higher runtimes")
   }
   
   if(foreach::getDoParRegistered() == FALSE){
     
-    warning("no parallel backend registered")  #Check if a parallel cluster has been registered and return warning if FALSE
+    warning("Function uses doParallel: No parallel backend registered")  #Check if a parallel cluster has been registered and return warning if FALSE
     
   } else {
     
@@ -220,7 +216,7 @@ ts_triads.evo <- function(t1,t2, filter = FALSE) {
       
       df <- subset(df, select=c(name, t1_ij:t1_kj, typeT1, t2_ij:t2_kj, typeT2, equal)) # Subset to remove redundant information
       
-      print(as.data.frame(df[which(df$equal == FALSE),c("name", "typeT1", "typeT2", "equal")])) #prints the "invalid" triad changes
+      print(as.data.frame(df[which(df$equal > 2),c("name", "typeT1", "typeT2", "equal")])) #prints the "invalid" triad changes
       
       triads <<- df # Write out all triads for visual inspection
       
@@ -247,7 +243,7 @@ ts_triads.evo <- function(t1,t2, filter = FALSE) {
     }
   }
 }
-
+ts_triads.evo(s501[1:5,1:5], s502[1:5,1:5])
 ```
 
 ```{r}
